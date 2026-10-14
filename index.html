@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>For Lovely</title>
+<meta name="theme-color" content="#0a0507">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================
+   COLORS & FONTS  — change the look here
+   ========================================================== */
+:root{
+  --bg:#0a0507;          /* near-black */
+  --wine:#3a0a17;        /* deep burgundy */
+  --wine-glow:#6b1228;   /* lighter burgundy glow */
+  --rose:#e8a0ad;        /* soft rose accent */
+  --ember:#ff5c7a;       /* heart glow */
+  --ink:#f6e9e6;         /* main text */
+  --ink-dim:#c9aeb0;     /* secondary text */
+  --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+  --sans:'Jost',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:radial-gradient(120% 90% at 50% 0%,var(--wine) 0%,var(--bg) 62%) fixed;
+  color:var(--ink);font-family:var(--serif);font-weight:300;
+  min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+main{position:relative;z-index:1}
+section{
+  min-height:100vh;min-height:100svh;display:none;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  padding:max(8vh,48px) 24px max(10vh,64px);
+}
+section.active{display:flex;animation:enter 1.4s ease both}
+@keyframes enter{from{opacity:0;filter:blur(8px)}to{opacity:1;filter:none}}
+h1,h2{font-weight:300;letter-spacing:.01em;line-height:1.15}
+h1{font-size:clamp(2.6rem,9vw,5.2rem);font-style:italic}
+h2{font-size:clamp(2.2rem,7vw,3.8rem);font-style:italic}
+.sub{font-size:clamp(1.15rem,3.6vw,1.6rem);color:var(--ink-dim);margin-top:1.4rem;max-width:30ch}
+.btn{
+  font-family:var(--sans);font-weight:300;font-size:.95rem;letter-spacing:.08em;
+  color:var(--ink);background:rgba(107,18,40,.25);border:1px solid rgba(232,160,173,.5);
+  padding:1rem 2rem;border-radius:999px;cursor:pointer;margin-top:2.6rem;
+  transition:background .4s,box-shadow .4s,transform .3s;
+}
+.btn:hover,.btn:focus-visible{background:rgba(107,18,40,.6);box-shadow:0 0 28px rgba(255,92,122,.35);outline:none}
+.btn:active{transform:scale(.97)}
+.btn.soft{border-color:rgba(201,174,176,.35);color:var(--ink-dim)}
+.btn.soft:hover,.btn.soft:focus-visible{box-shadow:0 0 22px rgba(201,174,176,.2)}
+
+/* Story lines: revealed one at a time */
+.lines{max-width:34ch;font-size:clamp(1.3rem,4.4vw,2rem);line-height:1.5}
+.lines p{opacity:0;transform:translateY(14px);filter:blur(6px);
+  transition:opacity 1.6s ease,transform 1.6s ease,filter 1.6s ease;margin:0 0 .35em}
+.lines p.show{opacity:1;transform:none;filter:none}
+.lines p.gap{margin-top:1.6em}
+.lines p.last{font-style:italic;color:var(--rose)}
+.next{opacity:0;pointer-events:none;transition:opacity 1.4s}
+.next.show{opacity:1;pointer-events:auto}
+
+/* Heart centerpiece */
+.heart{width:92px;height:92px;margin-bottom:2rem;filter:drop-shadow(0 0 22px var(--ember));animation:beat 2.8s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}14%{transform:scale(1.09)}28%{transform:scale(1)}42%{transform:scale(1.06)}70%{transform:scale(1)}}
+.para{font-size:clamp(1.2rem,3.9vw,1.7rem);line-height:1.6;max-width:34ch;margin-top:1.8rem}
+.para+.para{margin-top:1.4rem;color:var(--ink-dim)}
+
+/* Question */
+.q{max-width:16ch}
+.choices{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:2.6rem}
+.choices .btn{margin-top:0}
+
+/* Answers */
+.answer h2{margin-bottom:1.6rem}
+.answer .para{margin-top:0}
+
+/* Music + footer */
+#mute{
+  position:fixed;top:max(14px,env(safe-area-inset-top));right:14px;z-index:5;
+  width:44px;height:44px;border-radius:50%;border:1px solid rgba(232,160,173,.35);
+  background:rgba(10,5,7,.5);color:var(--ink);cursor:pointer;display:none;
+  align-items:center;justify-content:center;backdrop-filter:blur(6px);
+}
+#mute.on{display:flex}
+#mute svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5}
+footer{
+  position:fixed;bottom:max(12px,env(safe-area-inset-bottom));left:0;right:0;z-index:2;
+  text-align:center;font-family:var(--sans);font-size:.75rem;letter-spacing:.12em;color:rgba(201,174,176,.55);
+  pointer-events:none;
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01s!important;transition-duration:.01s!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<button id="mute" aria-label="Mute or unmute music" title="Music on/off">
+  <svg viewBox="0 0 24 24" id="icoOn"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+  <svg viewBox="0 0 24 24" id="icoOff" style="display:none"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
+</button>
+
+<main>
+  <section id="s1" class="active">
+    <h1 id="t-open1"></h1>
+    <p class="sub" id="t-open2"></p>
+    <button class="btn" id="openBtn"></button>
+  </section>
+
+  <section id="s2">
+    <div class="lines" id="story"></div>
+    <button class="btn next" id="toConfession">Continue</button>
+  </section>
+
+  <section id="s3">
+    <svg class="heart" viewBox="0 0 32 29" aria-hidden="true"><defs><radialGradient id="hg" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="#ff8aa0"/><stop offset="1" stop-color="#b3153f"/></radialGradient></defs><path fill="url(#hg)" d="M16 28C6 20 1 15 1 9.2 1 5 4.2 2 8 2c3.2 0 5.7 1.8 8 5 2.3-3.2 4.8-5 8-5 3.8 0 7 3 7 7.2C31 15 26 20 16 28z"/></svg>
+    <h2 id="t-conf-h"></h2>
+    <div id="conf"></div>
+    <button class="btn" id="toQuestion">Continue</button>
+  </section>
+
+  <section id="s4">
+    <h2 class="q" id="t-question"></h2>
+    <div class="choices">
+      <button class="btn" id="yesBtn"></button>
+      <button class="btn soft" id="friendBtn"></button>
+    </div>
+  </section>
+
+  <section id="sYes" class="answer"><h2 id="t-yes-h"></h2><div id="yesBody"></div></section>
+  <section id="sFriends" class="answer"><h2 id="t-friends-h"></h2><div id="friendsBody"></div></section>
+</main>
+<footer id="footer"></footer>
+
+<script>
+/* ==========================================================
+   ✏️  EDIT EVERYTHING HERE  — names, messages, music, colors
+   (Colors live in the :root block at the top of the CSS.)
+   Use \n for a line break inside a paragraph.
+   ========================================================== */
+const CONTENT = {
+  name: "Lovely",                       // ← her name (used in the headings below)
+
+  openingTitle: "Hey, Lovely... ❤️",
+  openingSub:   "There's something I've been wanting to tell you.",
+  openingButton:"Open this little surprise ✨",
+
+  // Story: each string is one line. Use "" for a pause (a bigger gap).
+  story: [
+    "Funny how someone can enter your life unexpectedly...",
+    "and slowly become someone you look forward to talking to.",
+    "",
+    "I don't know where this little connection will lead,",
+    "and I don't want to pretend I know everything about you.",
+    "",
+    "But there's something about your vibe,",
+    "your little expressions, and the way our conversations flow",
+    "that makes me want to know you a little more.",
+    "",
+    "And honestly...",
+    "I'd love to see where this takes us. ❤️"
+  ],
+
+  confessionHeading: "So, Lovely... ❤️",
+  confession: [
+    "I won't promise you a perfect fairytale,\nbecause real connections are built, not imagined.",
+    "But I'd like the chance to know you better,\nmake you smile, share random conversations,\nand create little moments worth remembering.",
+    "No pressure. No expectations.\nJust a genuine feeling I wanted to share with you."
+  ],
+
+  question:   "Would you like to give us a chance? ❤️",
+  yesButton:  "Yes, let's see where this goes ❤️",
+  friendButton:"Let's stay friends 🤍",
+
+  yesHeading: "You just made this moment special. ❤️",
+  yes: [
+    "Let's take things one step at a time,\nget to know each other genuinely,\nand see where our story goes.",
+    "No rush. Just us, one conversation at a time. ✨"
+  ],
+
+  friendsHeading: "That's completely okay, Lovely. 🤍",
+  friends: [
+    "I'm glad I could be honest with you.\nYour comfort matters, and there's no pressure at all.",
+    "Thank you for taking a moment to read this."
+  ],
+
+  footer: "Made with a little courage ❤️",
+
+  /* 🎵 MUSIC
+     By default a soft ambient pad is generated in the browser (no files, no copyright).
+     To use your own royalty-free track instead, put the file next to index.html and set:
+       musicFile: "music.mp3"
+     Only use music you own or that is licensed for this. Leave "" for the built-in pad. */
+  musicFile: "",
+  musicVolume: 0.35,
+
+  storyLineDelayMs: 2300   // pace of the story lines
+};
+/* ============== END OF EDITABLE SECTION ============== */
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function paras(el, arr){ el.innerHTML=''; arr.forEach(t=>{const p=document.createElement('p');p.className='para';p.style.whiteSpace='pre-line';p.textContent=t;el.appendChild(p);}); }
+
+/* ---------- fill content ---------- */
+document.title = "For " + CONTENT.name;
+$('t-open1').textContent = CONTENT.openingTitle;
+$('t-open2').textContent = CONTENT.openingSub;
+$('openBtn').textContent = CONTENT.openingButton;
+$('t-conf-h').textContent = CONTENT.confessionHeading;
+paras($('conf'), CONTENT.confession);
+$('t-question').textContent = CONTENT.question;
+$('yesBtn').textContent = CONTENT.yesButton;
+$('friendBtn').textContent = CONTENT.friendButton;
+$('t-yes-h').textContent = CONTENT.yesHeading; paras($('yesBody'), CONTENT.yes);
+$('t-friends-h').textContent = CONTENT.friendsHeading; paras($('friendsBody'), CONTENT.friends);
+$('footer').textContent = CONTENT.footer;
+
+/* ---------- section navigation ---------- */
+function go(id){
+  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo({top:0});
+}
+
+/* ---------- story reveal ---------- */
+const storyEl = $('story');
+const storyLines = CONTENT.story.map((t,i)=>{
+  if(t==='') return null;
+  const p=document.createElement('p');
+  p.textContent=t;
+  if(i>0 && CONTENT.story[i-1]==='') p.classList.add('gap');
+  if(i===CONTENT.story.length-1) p.classList.add('last');
+  storyEl.appendChild(p); return p;
+}).filter(Boolean);
+let storyTimers=[];
+function playStory(){
+  storyTimers.forEach(clearTimeout); storyTimers=[];
+  storyLines.forEach(p=>p.classList.remove('show')); $('toConfession').classList.remove('show');
+  storyLines.forEach((p,i)=>{
+    storyTimers.push(setTimeout(()=>{
+      p.classList.add('show');
+      if(i>2) p.scrollIntoView({behavior:'smooth',block:'center'});
+    }, 900 + i*(reduce?200:CONTENT.storyLineDelayMs)));
+  });
+  storyTimers.push(setTimeout(()=>$('toConfession').classList.add('show'), 900+storyLines.length*(reduce?200:CONTENT.storyLineDelayMs)+800));
+}
+
+/* ---------- music (starts only after a click) ---------- */
+let actx, master, audioEl, muted=false, started=false;
+function startMusic(){
+  if(started) return; started=true;
+  $('mute').classList.add('on');
+  if(CONTENT.musicFile){
+    audioEl=new Audio(CONTENT.musicFile); audioEl.loop=true; audioEl.volume=CONTENT.musicVolume;
+    audioEl.play().catch(()=>{}); return;
+  }
+  const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+  actx=new AC(); master=actx.createGain(); master.gain.value=0;
+  const lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=900;
+  const delay=actx.createDelay(1.5); delay.delayTime.value=.55;
+  const fb=actx.createGain(); fb.gain.value=.45; delay.connect(fb); fb.connect(delay);
+  lp.connect(master); lp.connect(delay); delay.connect(master); master.connect(actx.destination);
+  // slow chord progression: Am9 → Fmaj7 → Cmaj7 → G6 (frequencies in Hz)
+  const chords=[[110,164.8,220,261.6,329.6],[87.3,130.8,220,261.6,329.6],[130.8,196,246.9,329.6,392],[98,146.8,196,246.9,329.6]];
+  const voices=[0,1,2,3,4].map(()=>{
+    const o=actx.createOscillator(), o2=actx.createOscillator(), g=actx.createGain();
+    o.type='sine'; o2.type='triangle'; o2.detune.value=7; g.gain.value=.12;
+    o.connect(g); o2.connect(g); g.connect(lp); o.start(); o2.start(); return [o,o2];
+  });
+  let n=0;
+  const play=()=>{ const c=chords[n++%chords.length], t=actx.currentTime;
+    voices.forEach(([a,b],i)=>{ a.frequency.setTargetAtTime(c[i],t,1.6); b.frequency.setTargetAtTime(c[i],t,1.6); }); };
+  play(); setInterval(play,7000);
+  master.gain.linearRampToValueAtTime(CONTENT.musicVolume*.5,actx.currentTime+4);
+}
+$('mute').addEventListener('click',()=>{
+  muted=!muted;
+  $('icoOn').style.display=muted?'none':''; $('icoOff').style.display=muted?'':'none';
+  if(audioEl) audioEl.muted=muted;
+  if(master) master.gain.setTargetAtTime(muted?0:CONTENT.musicVolume*.5,actx.currentTime,.3);
+});
+
+/* ---------- buttons ---------- */
+$('openBtn').onclick=()=>{ startMusic(); go('s2'); playStory(); };
+$('toConfession').onclick=()=>go('s3');
+$('toQuestion').onclick=()=>go('s4');
+$('yesBtn').onclick=()=>{ go('sYes'); celebrate(); };
+$('friendBtn').onclick=()=>go('sFriends');
+
+/* ---------- canvas: particles, petals, cursor trail ---------- */
+const cv=$('fx'), cx=cv.getContext('2d');
+let W,H,DPR=Math.min(devicePixelRatio||1,2);
+function size(){ W=innerWidth;H=innerHeight; cv.width=W*DPR;cv.height=H*DPR; cx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize',size); size();
+const small=W<640;
+const dust=Array.from({length:small?28:55},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+.4,s:Math.random()*.25+.05,a:Math.random()*Math.PI*2}));
+const petals=Array.from({length:small?7:13},()=>newPetal(true));
+function newPetal(init){ return {x:Math.random()*W,y:init?Math.random()*H:-20,s:Math.random()*.6+.4,sz:Math.random()*8+7,rot:Math.random()*6,vr:(Math.random()-.5)*.02,sw:Math.random()*2,a:Math.random()*.25+.2}; }
+let burst=[], trail=[];
+function petalShape(x,y,sz,rot,alpha,col){
+  cx.save(); cx.translate(x,y); cx.rotate(rot); cx.globalAlpha=alpha; cx.fillStyle=col;
+  cx.beginPath(); cx.moveTo(0,-sz); cx.bezierCurveTo(sz*.9,-sz*.5,sz*.7,sz*.7,0,sz); cx.bezierCurveTo(-sz*.7,sz*.7,-sz*.9,-sz*.5,0,-sz); cx.fill(); cx.restore();
+}
+function celebrate(){
+  for(let i=0;i<(small?70:130);i++){
+    burst.push({x:W/2,y:H*.45,vx:(Math.random()-.5)*9,vy:-Math.random()*9-2,sz:Math.random()*9+5,rot:Math.random()*6,vr:(Math.random()-.5)*.2,life:1,glow:Math.random()<.35});
+  }
+}
+function frame(t){
+  cx.clearRect(0,0,W,H);
+  dust.forEach(d=>{ d.y-=d.s; d.x+=Math.sin(t/2000+d.a)*.15; if(d.y<-5){d.y=H+5;d.x=Math.random()*W}
+    cx.globalAlpha=.35+.25*Math.sin(t/1200+d.a); cx.fillStyle='#ffb8c4'; cx.shadowBlur=8; cx.shadowColor='#ff5c7a';
+    cx.beginPath(); cx.arc(d.x,d.y,d.r,0,6.3); cx.fill(); });
+  cx.shadowBlur=0;
+  petals.forEach((p,i)=>{ p.y+=p.s; p.x+=Math.sin(t/1500+p.sw)*.5; p.rot+=p.vr;
+    petalShape(p.x,p.y,p.sz,p.rot,p.a,'#a3153a'); if(p.y>H+30) petals[i]=newPetal(false); });
+  burst=burst.filter(b=>b.life>0);
+  burst.forEach(b=>{ b.vy+=.14; b.vx*=.99; b.x+=b.vx; b.y+=b.vy; b.rot+=b.vr; b.life-=.006;
+    if(b.glow){ cx.shadowBlur=18; cx.shadowColor='#ff5c7a'; }
+    petalShape(b.x,b.y,b.sz,b.rot,Math.max(b.life,0),b.glow?'#ff8aa0':'#c21a48'); cx.shadowBlur=0; });
+  trail=trail.filter(p=>p.l>0);
+  trail.forEach(p=>{ p.l-=.03; cx.globalAlpha=p.l*.6; cx.fillStyle='#ff8aa0'; cx.shadowBlur=12; cx.shadowColor='#ff5c7a';
+    cx.beginPath(); cx.arc(p.x,p.y,p.l*3,0,6.3); cx.fill(); cx.shadowBlur=0; });
+  cx.globalAlpha=1;
+  if(!reduce) requestAnimationFrame(frame);
+}
+if(!reduce) requestAnimationFrame(frame);
+/* cursor trail: desktop mouse only, never touch */
+if(matchMedia('(hover:hover) and (pointer:fine)').matches && !reduce){
+  addEventListener('pointermove',e=>{ if(e.pointerType==='mouse') trail.push({x:e.clientX,y:e.clientY,l:1}); });
+}
+</script>
+</body>
+</html>
